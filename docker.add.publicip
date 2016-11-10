@@ -1,0 +1,13 @@
+#!/bin/bash
+#docker run  -d --name web  nantony/debian:latest lighttpd  -f /etc/lighttpd/lighttpd.conf -D
+#docker run  -it --name web  nantony/debian:latest
+ip link add web-int type veth peer name web-ext # creating network device pair
+brctl addif br-net0 web-ext # adding created device to public bridge , use i
+			#https://github.com/sudeeshjohn/misctools/blob/master/br.sh for cofiguring public bridge
+ifconfig web-ext up #bring up the device
+ip link set netns $(docker inspect -f '{{ .State.Pid }}' web) dev web-int #adding second device to the container
+nsenter -t $(docker inspect -f '{{ .State.Pid }}' web) -n ip link set web-int up
+nsenter -t $(docker inspect -f '{{ .State.Pid }}' web) -n ip addr add 9.47.70.205/24 dev web-int
+nsenter -t $(docker inspect -f '{{ .State.Pid }}' web) -n ip route del default
+nsenter -t $(docker inspect -f '{{ .State.Pid }}' web) -n ip route add default via 9.47.70.1 dev web-int
+
